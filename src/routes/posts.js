@@ -1,7 +1,167 @@
 const router = require("express").Router();
 const Post = require("../models/Post");
 const requireAuth = require("../middleware/auth");
+/**
+ * @swagger
+ * tags:
+ *   name: Posts
+ *   description: Post CRUD, likes and comments
+ */
 
+/**
+ * @swagger
+ * /api/posts:
+ *   get:
+ *     summary: List all posts (newest first)
+ *     tags: [Posts]
+ *     responses:
+ *       200:
+ *         description: Array of posts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items: { $ref: '#/components/schemas/Post' }
+ *   post:
+ *     summary: Create a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, description]
+ *             properties:
+ *               title:       { type: string }
+ *               description: { type: string }
+ *               image:       { type: string }
+ *     responses:
+ *       201:
+ *         description: Created post
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Post' }
+ *
+ * /api/posts/{id}:
+ *   get:
+ *     summary: Get a single post
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post object
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Post' }
+ *       404:
+ *         description: Post not found
+ *   put:
+ *     summary: Update own post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:       { type: string }
+ *               description: { type: string }
+ *               image:       { type: string }
+ *     responses:
+ *       200:
+ *         description: Updated post
+ *       403:
+ *         description: Forbidden
+ *   delete:
+ *     summary: Delete own post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Post deleted
+ *       403:
+ *         description: Forbidden
+ *
+ * /api/posts/{id}/like:
+ *   post:
+ *     summary: Toggle like on a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Like count and liked status
+ *
+ * /api/posts/{id}/comments:
+ *   post:
+ *     summary: Add a comment to a post
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [text]
+ *             properties:
+ *               text: { type: string }
+ *     responses:
+ *       201:
+ *         description: Created comment
+ *
+ * /api/posts/{id}/comments/{commentId}:
+ *   delete:
+ *     summary: Delete own comment
+ *     tags: [Posts]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Comment deleted
+ *       403:
+ *         description: Forbidden
+ */
 // ─── CRUD ────────────────────────────────────────────────────────────────────
 
 // GET /api/posts  — list all posts (newest first)

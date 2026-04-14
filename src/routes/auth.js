@@ -1,8 +1,36 @@
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Register and login
+ */
 
-// POST /api/auth/register
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, name, password]
+ *             properties:
+ *               email:    { type: string }
+ *               name:     { type: string }
+ *               password: { type: string, format: password }
+ *     responses:
+ *       201:
+ *         description: User created, returns JWT
+ *       409:
+ *         description: Email already in use
+ */// POST /api/auth/register
 router.post("/register", async (req, res, next) => {
   try {
     const { email, name, password } = req.body;
@@ -26,6 +54,28 @@ router.post("/register", async (req, res, next) => {
 });
 
 // POST /api/auth/login
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login and receive a JWT
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:    { type: string }
+ *               password: { type: string, format: password }
+ *     responses:
+ *       200:
+ *         description: Returns JWT
+ *       401:
+ *         description: Invalid credentials
+ */
 router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;

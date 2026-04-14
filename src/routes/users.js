@@ -1,7 +1,72 @@
 const router = require("express").Router();
 const User = require("../models/User");
 const requireAuth = require("../middleware/auth");
+/**
+ * @swagger
+ * tags:
+ *   name: Users
+ *   description: User profile management
+ */
 
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   get:
+ *     summary: Get a user's public profile
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: User object
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/User' }
+ *       404:
+ *         description: User not found
+ *   put:
+ *     summary: Update own profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:     { type: string }
+ *               email:    { type: string }
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Updated user
+ *       403:
+ *         description: Forbidden
+ *   delete:
+ *     summary: Delete own account
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ *       403:
+ *         description: Forbidden
+ */
 // GET /api/users/:id  — get a user's public profile
 router.get("/:id", async (req, res, next) => {
   try {
