@@ -30,7 +30,7 @@ const User = require("../models/User");
  *         description: User created, returns JWT
  *       409:
  *         description: Email already in use
- */// POST /api/auth/register
+ */ // POST /api/auth/register
 router.post("/register", async (req, res, next) => {
   try {
     const { email, name, password } = req.body;
@@ -104,12 +104,8 @@ function signToken(id) {
 }
 
 function safeUser(user) {
-  return {
-    id: user._id,
-    email: user.email,
-    name: user.name,
-    createdAt: user.createdAt,
-  };
+  const { id, email, name, createdAt } = user.toJSON();
+  return { id, email, name, createdAt };
 }
 
 module.exports = router;

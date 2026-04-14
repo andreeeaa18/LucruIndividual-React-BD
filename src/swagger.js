@@ -21,7 +21,7 @@ const options = {
         User: {
           type: "object",
           properties: {
-            _id: { type: "string" },
+            id: { type: "string" },
             email: { type: "string" },
             name: { type: "string" },
             createdAt: { type: "string", format: "date-time" },
@@ -31,7 +31,7 @@ const options = {
         Comment: {
           type: "object",
           properties: {
-            _id: { type: "string" },
+            id: { type: "string" },
             userId: { $ref: "#/components/schemas/User" },
             text: { type: "string" },
             createdAt: { type: "string", format: "date-time" },
@@ -40,7 +40,7 @@ const options = {
         Post: {
           type: "object",
           properties: {
-            _id: { type: "string" },
+            id: { type: "string" },
             title: { type: "string" },
             description: { type: "string" },
             image: { type: "string" },

@@ -94,12 +94,7 @@ router.put("/:id", requireAuth, async (req, res, next) => {
     if (password) user.password = password; // pre-save hook will rehash
 
     await user.save();
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      updatedAt: user.updatedAt,
-    });
+    res.json(user);
   } catch (err) {
     next(err);
   }
