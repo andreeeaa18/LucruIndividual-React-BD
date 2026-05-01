@@ -1,27 +1,5 @@
 const mongoose = require("mongoose");
 
-const commentSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    text: { type: String, required: true, trim: true },
-  },
-  {
-    timestamps: true,
-    toJSON: {
-      virtuals: true,
-      transform: (_doc, ret) => {
-        delete ret._id;
-        delete ret.__v;
-        return ret;
-      },
-    },
-  },
-);
-
 const postSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -33,7 +11,8 @@ const postSchema = new mongoose.Schema(
       required: true,
     },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    comments: [commentSchema],
+    likeCount: { type: Number, default: 0 },
+    commentCount: { type: Number, default: 0 },
   },
   {
     timestamps: true,

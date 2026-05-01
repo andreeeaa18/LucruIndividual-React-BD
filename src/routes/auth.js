@@ -1,11 +1,12 @@
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const requireAuth = require("../middleware/auth");
 /**
  * @swagger
  * tags:
  *   name: Auth
- *   description: Register and login
+ *   description: Register, login and logout
  */
 
 /**
@@ -46,8 +47,9 @@ router.post("/register", async (req, res, next) => {
 
     const user = await User.create({ email, name, password });
     const token = signToken(user._id);
+    setTokenCookie(res, token);
 
-    res.status(201).json({ token, user: safeUser(user) });
+    res.status(201).json({ user: safeUser(user) });
   } catch (err) {
     next(err);
   }
@@ -91,7 +93,8 @@ router.post("/login", async (req, res, next) => {
     }
 
     const token = signToken(user._id);
-    res.json({ token, user: safeUser(user) });
+    setTokenCookie(res, token);
+    res.json({ user: safeUser(user) });
   } catch (err) {
     next(err);
   }
@@ -103,9 +106,44 @@ function signToken(id) {
   });
 }
 
+function setTokenCookie(res, token) {
+  const isProd = process.env.NODE_ENV === "production";
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  });
+}
+
 function safeUser(user) {
   const { id, email, name, createdAt } = user.toJSON();
   return { id, email, name, createdAt };
 }
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout (client should discard the token)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out
+ *       401:
+ *         description: No token provided
+ */
+// POST /api/auth/logout
+router.post("/logout", requireAuth, (req, res) => {
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+  });
+  res.json({ message: "Logged out successfully" });
+});
 
 module.exports = router;

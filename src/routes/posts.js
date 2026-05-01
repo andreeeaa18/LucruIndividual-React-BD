@@ -1,11 +1,13 @@
 const router = require("express").Router();
 const Post = require("../models/Post");
+const Comment = require("../models/Comment");
 const requireAuth = require("../middleware/auth");
+
 /**
  * @swagger
  * tags:
  *   name: Posts
- *   description: Post CRUD, likes and comments
+ *   description: Post CRUD and likes
  */
 
 /**
@@ -115,76 +117,36 @@ const requireAuth = require("../middleware/auth");
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Like count and liked status
- *
- * /api/posts/{id}/comments:
- *   post:
- *     summary: Add a comment to a post
- *     tags: [Posts]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [text]
- *             properties:
- *               text: { type: string }
- *     responses:
- *       201:
- *         description: Created comment
- *
- * /api/posts/{id}/comments/{commentId}:
- *   delete:
- *     summary: Delete own comment
- *     tags: [Posts]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string }
- *       - in: path
- *         name: commentId
- *         required: true
- *         schema: { type: string }
- *     responses:
- *       200:
- *         description: Comment deleted
- *       403:
- *         description: Forbidden
+ *         description: Like toggled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:     { type: boolean }
+ *                 likeCount: { type: integer }
  */
-// ─── CRUD ────────────────────────────────────────────────────────────────────
 
-// GET /api/posts  — list all posts (newest first)
+// GET /api/posts — list all posts (newest first)
 router.get("/", async (req, res, next) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .populate("authorId", "name email")
-      .populate("likes", "name")
-      .populate("comments.userId", "name");
+      .select("-likes")
+      .populate("authorId", "name email");
     res.json(posts);
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/posts/:id  — get a single post
+// GET /api/posts/:id — get a single post
 router.get("/:id", async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.id)
-      .populate("authorId", "name email")
-      .populate("likes", "name")
-      .populate("comments.userId", "name");
+    const post = await Post.findById(req.params.id).populate(
+      "authorId",
+      "name email",
+    );
     if (!post) return res.status(404).json({ message: "Post not found" });
     res.json(post);
   } catch (err) {
@@ -192,7 +154,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-// POST /api/posts  — create a post (auth required)
+// POST /api/posts — create a post (auth required)
 router.post("/", requireAuth, async (req, res, next) => {
   try {
     const { title, description, image } = req.body;
@@ -214,7 +176,7 @@ router.post("/", requireAuth, async (req, res, next) => {
   }
 });
 
-// PUT /api/posts/:id  — update a post (author only)
+// PUT /api/posts/:id — update own post (auth required)
 router.put("/:id", requireAuth, async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -235,7 +197,7 @@ router.put("/:id", requireAuth, async (req, res, next) => {
   }
 });
 
-// DELETE /api/posts/:id  — delete a post (author only)
+// DELETE /api/posts/:id — delete own post (auth required)
 router.delete("/:id", requireAuth, async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.id);
@@ -245,80 +207,39 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
     }
 
     await post.deleteOne();
+    await Comment.deleteMany({ postId: post._id });
     res.json({ message: "Post deleted" });
   } catch (err) {
     next(err);
   }
 });
 
-// ─── LIKES ───────────────────────────────────────────────────────────────────
-
-// POST /api/posts/:id/like  — toggle like
+// POST /api/posts/:id/like — toggle like (auth required)
 router.post("/:id/like", requireAuth, async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).select("likes likeCount");
     if (!post) return res.status(404).json({ message: "Post not found" });
 
     const alreadyLiked = post.likes.some(
       (uid) => uid.toString() === req.userId,
     );
+
     if (alreadyLiked) {
-      post.likes = post.likes.filter((uid) => uid.toString() !== req.userId);
+      await Post.findByIdAndUpdate(req.params.id, {
+        $pull: { likes: req.userId },
+        $inc: { likeCount: -1 },
+      });
+      return res.json({ liked: false, likeCount: post.likeCount - 1 });
     } else {
-      post.likes.push(req.userId);
+      await Post.findByIdAndUpdate(req.params.id, {
+        $addToSet: { likes: req.userId },
+        $inc: { likeCount: 1 },
+      });
+      return res.json({ liked: true, likeCount: post.likeCount + 1 });
     }
-
-    await post.save();
-    res.json({ likes: post.likes.length, liked: !alreadyLiked });
   } catch (err) {
     next(err);
   }
 });
-
-// ─── COMMENTS ────────────────────────────────────────────────────────────────
-
-// POST /api/posts/:id/comments  — add a comment
-router.post("/:id/comments", requireAuth, async (req, res, next) => {
-  try {
-    const { text } = req.body;
-    if (!text) return res.status(400).json({ message: "text is required" });
-
-    const post = await Post.findById(req.params.id);
-    if (!post) return res.status(404).json({ message: "Post not found" });
-
-    post.comments.push({ userId: req.userId, text });
-    await post.save();
-
-    const newComment = post.comments[post.comments.length - 1];
-    res.status(201).json(newComment);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// DELETE /api/posts/:id/comments/:commentId  — delete own comment
-router.delete(
-  "/:id/comments/:commentId",
-  requireAuth,
-  async (req, res, next) => {
-    try {
-      const post = await Post.findById(req.params.id);
-      if (!post) return res.status(404).json({ message: "Post not found" });
-
-      const comment = post.comments.id(req.params.commentId);
-      if (!comment)
-        return res.status(404).json({ message: "Comment not found" });
-      if (comment.userId.toString() !== req.userId) {
-        return res.status(403).json({ message: "Forbidden" });
-      }
-
-      comment.deleteOne();
-      await post.save();
-      res.json({ message: "Comment deleted" });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
 
 module.exports = router;

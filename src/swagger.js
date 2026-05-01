@@ -8,15 +8,8 @@ const options = {
       version: "1.0.0",
       description: "REST API for posts, users, likes and comments",
     },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    servers: [{ url: `http://localhost:${process.env.PORT || 5000}` }],
     components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
-      },
       schemas: {
         User: {
           type: "object",
@@ -32,9 +25,16 @@ const options = {
           type: "object",
           properties: {
             id: { type: "string" },
+            postId: { type: "string" },
             userId: { $ref: "#/components/schemas/User" },
-            text: { type: "string" },
+            parentId: {
+              type: "string",
+              nullable: true,
+              description: "ID of parent comment for replies",
+            },
+            content: { type: "string" },
             createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
           },
         },
         Post: {
@@ -45,11 +45,8 @@ const options = {
             description: { type: "string" },
             image: { type: "string" },
             authorId: { $ref: "#/components/schemas/User" },
-            likes: { type: "array", items: { type: "string" } },
-            comments: {
-              type: "array",
-              items: { $ref: "#/components/schemas/Comment" },
-            },
+            likeCount: { type: "integer" },
+            commentCount: { type: "integer" },
             createdAt: { type: "string", format: "date-time" },
             updatedAt: { type: "string", format: "date-time" },
           },
@@ -58,6 +55,7 @@ const options = {
     },
   },
   apis: ["./src/routes/*.js"],
+  // comments.js is already matched by the glob above
 };
 
 module.exports = swaggerJsdoc(options);
